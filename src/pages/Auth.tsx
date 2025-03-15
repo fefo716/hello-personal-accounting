@@ -11,6 +11,8 @@ import { Navigate } from 'react-router-dom';
 const Auth = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const { signIn, signUp, loading, session } = useAuth();
 
   // If user is already logged in, redirect to home
@@ -25,7 +27,7 @@ const Auth = () => {
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
-    await signUp(email, password);
+    await signUp(email, password, firstName, lastName);
   };
 
   return (
@@ -78,6 +80,28 @@ const Auth = () => {
           <TabsContent value="signup">
             <form onSubmit={handleSignUp}>
               <CardContent className="space-y-4 pt-4">
+                <div className="space-y-2">
+                  <Label htmlFor="signup-firstname">Nombre</Label>
+                  <Input 
+                    id="signup-firstname"
+                    type="text" 
+                    placeholder="Nombre" 
+                    value={firstName}
+                    onChange={(e) => setFirstName(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="signup-lastname">Apellido</Label>
+                  <Input 
+                    id="signup-lastname"
+                    type="text" 
+                    placeholder="Apellido" 
+                    value={lastName}
+                    onChange={(e) => setLastName(e.target.value)}
+                    required
+                  />
+                </div>
                 <div className="space-y-2">
                   <Label htmlFor="signup-email">Correo Electrónico</Label>
                   <Input 
