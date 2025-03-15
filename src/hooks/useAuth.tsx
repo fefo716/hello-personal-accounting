@@ -1,9 +1,9 @@
-
 import { useState, useEffect, createContext, useContext, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
 import { Session, UserProfile } from '@/types';
 import { useNavigate } from 'react-router-dom';
+import { Session as SupabaseSession } from '@supabase/supabase-js';
 
 interface AuthContextProps {
   session: Session | null;
@@ -26,20 +26,37 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     // Check active session
     supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
       if (session) {
+        // Convert Supabase session to our Session type
+        const appSession: Session = {
+          user: {
+            id: session.user.id,
+            email: session.user.email || undefined
+          }
+        };
+        setSession(appSession);
         fetchProfile(session.user.id);
+      } else {
+        setSession(null);
       }
       setLoading(false);
     });
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
-        setSession(session);
-        if (session) {
-          fetchProfile(session.user.id);
+      (_event, supabaseSession) => {
+        if (supabaseSession) {
+          // Convert Supabase session to our Session type
+          const appSession: Session = {
+            user: {
+              id: supabaseSession.user.id,
+              email: supabaseSession.user.email || undefined
+            }
+          };
+          setSession(appSession);
+          fetchProfile(supabaseSession.user.id);
         } else {
+          setSession(null);
           setProfile(null);
         }
         setLoading(false);

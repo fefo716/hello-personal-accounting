@@ -26,9 +26,10 @@ export interface UserProfile {
   updated_at: string;
 }
 
+// Updated Session interface to match Supabase's Session type
 export interface Session {
   user: {
     id: string;
-    email: string;
+    email?: string; // Made email optional to match Supabase's User type
   } | null;
 }

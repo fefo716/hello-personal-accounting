@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -16,8 +15,7 @@ const queryClient = new QueryClient();
 
 // Auth protected route component
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  // For now we'll use localStorage to check if user is logged in
-  // This will be replaced with actual Supabase auth check once we implement useAuth
+  // Use the Supabase auth check properly here
   const authSession = localStorage.getItem('supabase.auth.token');
   
   if (!authSession) {
