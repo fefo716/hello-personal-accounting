@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -5,6 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { TransactionsProvider } from "@/hooks/useTransactions";
 import { AuthProvider } from "@/hooks/useAuth";
+import { useAuth } from "@/hooks/useAuth";
 import Index from "./pages/Index";
 import History from "./pages/History";
 import Statistics from "./pages/Statistics";
@@ -15,10 +17,13 @@ const queryClient = new QueryClient();
 
 // Auth protected route component
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  // Use the Supabase auth check properly here
-  const authSession = localStorage.getItem('supabase.auth.token');
+  const { session, loading } = useAuth();
   
-  if (!authSession) {
+  if (loading) {
+    return <div className="flex min-h-screen items-center justify-center">Cargando...</div>;
+  }
+  
+  if (!session) {
     return <Navigate to="/auth" />;
   }
   
