@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { 
   Dialog,
@@ -31,7 +30,7 @@ import { cn } from '@/lib/utils';
 
 const categories = {
   income: ['Salary', 'Freelance', 'Investments', 'Gift', 'Other'],
-  expense: ['Food', 'Transport', 'Entertainment', 'Housing', 'Utilities', 'Healthcare', 'Shopping', 'Other']
+  expense: ['Food', 'Transport', 'Entertainment', 'Housing', 'Utilities', 'Healthcare', 'Shopping', 'Education', 'Sports', 'Gift', 'Loans', 'Other']
 };
 
 const TransactionForm = () => {
