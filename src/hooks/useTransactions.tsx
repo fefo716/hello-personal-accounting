@@ -1,4 +1,3 @@
-
 import { useState, useEffect, createContext, useContext, ReactNode } from 'react';
 import { Transaction, TransactionType, PaymentMethod } from '@/types';
 import { useToast } from '@/components/ui/use-toast';
@@ -29,13 +28,11 @@ export const TransactionsProvider = ({ children }: { children: ReactNode }) => {
   const { toast } = useToast();
   const { session } = useAuth();
 
-  // Fetch transactions from Supabase
   useEffect(() => {
     if (session?.user?.id) {
       fetchTransactions();
       fetchPaymentMethods();
     } else {
-      // If not logged in, clear the transactions
       setTransactions([]);
       setPaymentMethods([]);
       setLoadingTransactions(false);
@@ -118,19 +115,19 @@ export const TransactionsProvider = ({ children }: { children: ReactNode }) => {
         throw new Error('User not authenticated');
       }
 
+      const formattedDate = transaction.date.toISOString();
+
       const { data, error } = await supabase
         .from('transactions')
-        .insert([
-          {
-            user_id: session.user.id,
-            type: transaction.type,
-            amount: transaction.amount,
-            description: transaction.description,
-            category: transaction.category,
-            payment_method_id: transaction.payment_method_id,
-            date: transaction.date,
-          }
-        ])
+        .insert({
+          user_id: session.user.id,
+          type: transaction.type,
+          amount: transaction.amount,
+          description: transaction.description,
+          category: transaction.category,
+          payment_method_id: transaction.payment_method_id,
+          date: formattedDate
+        })
         .select()
         .single();
 
@@ -139,19 +136,15 @@ export const TransactionsProvider = ({ children }: { children: ReactNode }) => {
       }
 
       if (data) {
-        // Log the transaction
         await supabase
           .from('transaction_logs')
-          .insert([
-            {
-              user_id: session.user.id,
-              transaction_id: data.id,
-              action: 'create',
-              details: { transaction: data }
-            }
-          ]);
+          .insert({
+            user_id: session.user.id,
+            transaction_id: data.id,
+            action: 'create',
+            details: { transaction: data }
+          });
 
-        // Create formatted transaction to add to state
         const newTransaction: Transaction = {
           id: data.id,
           type: data.type as TransactionType,
@@ -162,7 +155,6 @@ export const TransactionsProvider = ({ children }: { children: ReactNode }) => {
           date: new Date(data.date)
         };
 
-        // Add the payment method name if we have it
         if (data.payment_method_id) {
           const paymentMethod = paymentMethods.find(p => p.id === data.payment_method_id);
           if (paymentMethod) {
@@ -194,14 +186,12 @@ export const TransactionsProvider = ({ children }: { children: ReactNode }) => {
         throw new Error('User not authenticated');
       }
 
-      // Get the transaction to log before deleting
       const { data: transactionData } = await supabase
         .from('transactions')
         .select('*')
         .eq('id', id)
         .single();
 
-      // Delete the transaction
       const { error } = await supabase
         .from('transactions')
         .delete()
@@ -212,7 +202,6 @@ export const TransactionsProvider = ({ children }: { children: ReactNode }) => {
         throw error;
       }
 
-      // Log the deletion
       if (transactionData) {
         await supabase
           .from('transaction_logs')
@@ -285,12 +274,10 @@ export const TransactionsProvider = ({ children }: { children: ReactNode }) => {
   const getFilteredTransactions = (type?: TransactionType, yearMonth?: string) => {
     let filtered = [...transactions];
     
-    // Filter by type if specified
     if (type) {
       filtered = filtered.filter(t => t.type === type);
     }
     
-    // Filter by year-month if specified
     if (yearMonth) {
       filtered = filtered.filter(t => {
         const transactionYearMonth = format(t.date, 'yyyy-MM');
