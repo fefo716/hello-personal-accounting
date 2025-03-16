@@ -27,16 +27,21 @@ const Statistics = () => {
   useEffect(() => {
     const months = new Set<string>();
     
-    // Add current month and 11 previous months
-    let currentDate = new Date();
-    for (let i = 0; i < 12; i++) {
+    // Always add the current month first
+    const today = new Date();
+    months.add(format(today, 'yyyy-MM'));
+    
+    // Add 11 previous months
+    let currentDate = subMonths(today, 1);
+    for (let i = 0; i < 11; i++) {
       months.add(format(currentDate, 'yyyy-MM'));
       currentDate = subMonths(currentDate, 1);
     }
     
     // Add months from transactions
     transactions.forEach(transaction => {
-      months.add(format(transaction.date, 'yyyy-MM'));
+      const transactionMonth = format(transaction.date, 'yyyy-MM');
+      months.add(transactionMonth);
     });
     
     // Sort months in descending order (newest first)
