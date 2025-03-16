@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { 
   Dialog,
@@ -23,7 +24,7 @@ import {
   TabsList, 
   TabsTrigger 
 } from '@/components/ui/tabs';
-import { ArrowUp, ArrowDown, Plus } from 'lucide-react';
+import { ArrowUp, ArrowDown, Plus, CreditCard } from 'lucide-react';
 import { useTransactions } from '@/hooks/useTransactions';
 import { TransactionType } from '@/types';
 import { cn } from '@/lib/utils';
@@ -34,23 +35,27 @@ const categories = {
 };
 
 const TransactionForm = () => {
-  const { addTransaction } = useTransactions();
+  const { addTransaction, paymentMethods, loadingPaymentMethods, addPaymentMethod } = useTransactions();
   const [open, setOpen] = useState(false);
   const [type, setType] = useState<TransactionType>('expense');
   const [amount, setAmount] = useState('');
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState('');
+  const [paymentMethodId, setPaymentMethodId] = useState('');
+  const [newPaymentMethod, setNewPaymentMethod] = useState('');
+  const [showPaymentMethodForm, setShowPaymentMethodForm] = useState(false);
   
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!amount || !description || !category) return;
     
-    addTransaction({
+    await addTransaction({
       type,
       amount: parseFloat(amount),
       description,
       category,
+      payment_method_id: paymentMethodId || undefined,
       date: new Date()
     });
     
@@ -58,7 +63,17 @@ const TransactionForm = () => {
     setAmount('');
     setDescription('');
     setCategory('');
+    setPaymentMethodId('');
     setOpen(false);
+  };
+  
+  const handleAddPaymentMethod = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newPaymentMethod) return;
+    
+    await addPaymentMethod(newPaymentMethod);
+    setNewPaymentMethod('');
+    setShowPaymentMethodForm(false);
   };
   
   return (
@@ -153,6 +168,77 @@ const TransactionForm = () => {
                     ))}
                   </SelectContent>
                 </Select>
+              </div>
+              
+              <div className="space-y-2">
+                <div className="flex justify-between items-center">
+                  <Label htmlFor="payment-method">Payment Method</Label>
+                  <Button 
+                    type="button" 
+                    variant="link" 
+                    size="sm"
+                    className="h-auto p-0 text-xs text-blue-500"
+                    onClick={() => setShowPaymentMethodForm(true)}
+                  >
+                    Add New
+                  </Button>
+                </div>
+                
+                {showPaymentMethodForm ? (
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="Enter payment method name"
+                      value={newPaymentMethod}
+                      onChange={(e) => setNewPaymentMethod(e.target.value)}
+                      className="flex-1"
+                    />
+                    <Button 
+                      type="button" 
+                      size="sm"
+                      onClick={handleAddPaymentMethod}
+                      disabled={!newPaymentMethod}
+                    >
+                      Add
+                    </Button>
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => {
+                        setShowPaymentMethodForm(false);
+                        setNewPaymentMethod('');
+                      }}
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                ) : (
+                  <Select
+                    value={paymentMethodId}
+                    onValueChange={setPaymentMethodId}
+                  >
+                    <SelectTrigger id="payment-method" className="w-full">
+                      <SelectValue placeholder="Select payment method (optional)" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {loadingPaymentMethods ? (
+                        <SelectItem value="loading" disabled>
+                          Loading...
+                        </SelectItem>
+                      ) : paymentMethods.length === 0 ? (
+                        <SelectItem value="none" disabled>
+                          No payment methods available
+                        </SelectItem>
+                      ) : (
+                        paymentMethods.map((method) => (
+                          <SelectItem key={method.id} value={method.id}>
+                            {method.name}
+                          </SelectItem>
+                        ))
+                      )}
+                    </SelectContent>
+                  </Select>
+                )}
               </div>
             </div>
           </Tabs>

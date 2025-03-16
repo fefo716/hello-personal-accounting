@@ -14,12 +14,12 @@ const History = () => {
   const [filter, setFilter] = useState<TransactionType | 'all'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   
-  // Filter transactions based on type and search query
+  // Filter transactions based on search query
   const filteredTransactions = transactions
-    .filter(t => filter === 'all' || t.type === filter)
     .filter(t => 
       t.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      t.category.toLowerCase().includes(searchQuery.toLowerCase())
+      t.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (t.payment_method && t.payment_method.toLowerCase().includes(searchQuery.toLowerCase()))
     );
   
   return (
@@ -53,7 +53,10 @@ const History = () => {
           </div>
           
           <div className="animate-slide-up animate-delay-2">
-            <TransactionList showHeading={false} />
+            <TransactionList 
+              showHeading={false}
+              type={filter === 'all' ? undefined : filter}
+            />
             
             {filteredTransactions.length === 0 && searchQuery && (
               <div className="text-center py-10">

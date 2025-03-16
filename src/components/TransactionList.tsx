@@ -2,12 +2,13 @@
 import { useState } from 'react';
 import { useTransactions } from '@/hooks/useTransactions';
 import { Transaction } from '@/types';
-import { formatDistanceToNow } from 'date-fns';
+import { formatDistanceToNow, format } from 'date-fns';
 import { 
   ArrowUp, 
   ArrowDown,
   MoreVertical,
-  Trash2
+  Trash2,
+  CreditCard
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -21,14 +22,19 @@ interface TransactionListProps {
   limit?: number;
   className?: string;
   showHeading?: boolean;
+  type?: 'income' | 'expense';
+  yearMonth?: string;
 }
 
-const TransactionList = ({ limit, className, showHeading = true }: TransactionListProps) => {
-  const { transactions, deleteTransaction } = useTransactions();
+const TransactionList = ({ limit, className, showHeading = true, type, yearMonth }: TransactionListProps) => {
+  const { getFilteredTransactions, deleteTransaction, loadingTransactions } = useTransactions();
   const [isAnimating, setIsAnimating] = useState<string | null>(null);
   
+  // Get filtered transactions
+  const filteredTransactions = getFilteredTransactions(type, yearMonth);
+  
   // Sort transactions by date (newest first)
-  const sortedTransactions = [...transactions].sort(
+  const sortedTransactions = [...filteredTransactions].sort(
     (a, b) => b.date.getTime() - a.date.getTime()
   );
   
@@ -61,10 +67,18 @@ const TransactionList = ({ limit, className, showHeading = true }: TransactionLi
     }
   };
   
-  if (transactions.length === 0) {
+  if (loadingTransactions) {
     return (
       <div className={cn("text-center py-8", className)}>
-        <p className="text-muted-foreground">No transactions yet</p>
+        <p className="text-muted-foreground">Loading transactions...</p>
+      </div>
+    );
+  }
+  
+  if (filteredTransactions.length === 0) {
+    return (
+      <div className={cn("text-center py-8", className)}>
+        <p className="text-muted-foreground">No transactions found</p>
       </div>
     );
   }
@@ -72,7 +86,14 @@ const TransactionList = ({ limit, className, showHeading = true }: TransactionLi
   return (
     <div className={className}>
       {showHeading && (
-        <h3 className="text-lg font-semibold mb-4">Recent Transactions</h3>
+        <h3 className="text-lg font-semibold mb-4">
+          {type 
+            ? `${type === 'income' ? 'Income' : 'Expense'} Transactions` 
+            : yearMonth
+              ? `Transactions for ${format(new Date(yearMonth + '-01'), 'MMMM yyyy')}`
+              : 'Recent Transactions'
+          }
+        </h3>
       )}
       
       <div className="space-y-4">
@@ -96,9 +117,18 @@ const TransactionList = ({ limit, className, showHeading = true }: TransactionLi
               
               <div>
                 <p className="font-medium">{transaction.description}</p>
-                <p className="text-xs text-muted-foreground">
-                  {transaction.category} • {formatDistanceToNow(transaction.date, { addSuffix: true })}
-                </p>
+                <div className="flex items-center gap-2">
+                  <p className="text-xs text-muted-foreground">
+                    {transaction.category} • {formatDistanceToNow(transaction.date, { addSuffix: true })}
+                  </p>
+                  {transaction.payment_method && (
+                    <div className="flex items-center text-xs text-muted-foreground">
+                      <span className="mx-1">•</span>
+                      <CreditCard className="h-3 w-3 mr-1" />
+                      {transaction.payment_method}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
             

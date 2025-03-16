@@ -7,6 +7,8 @@ export interface Transaction {
   amount: number;
   description: string;
   category: string;
+  payment_method_id?: string;
+  payment_method?: string;
   date: Date;
 }
 
@@ -15,6 +17,13 @@ export interface Category {
   name: string;
   type: TransactionType;
   icon?: string;
+}
+
+export interface PaymentMethod {
+  id: string;
+  name: string;
+  user_id: string;
+  created_at: string;
 }
 
 export interface UserProfile {
@@ -26,10 +35,9 @@ export interface UserProfile {
   updated_at: string;
 }
 
-// Updated Session interface to match Supabase's Session type
 export interface Session {
   user: {
     id: string;
-    email?: string; // Made email optional to match Supabase's User type
+    email?: string;
   } | null;
 }
