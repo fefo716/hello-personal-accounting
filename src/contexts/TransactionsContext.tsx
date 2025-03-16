@@ -89,14 +89,22 @@ export const TransactionsProvider = ({ children }: { children: ReactNode }) => {
 
       const newTransaction = await apiAddTransaction(session.user.id, transaction);
 
+      // Fix: Get the payment method name and add it to the transaction object
       if (newTransaction.payment_method_id) {
         const paymentMethod = paymentMethods.find(p => p.id === newTransaction.payment_method_id);
         if (paymentMethod) {
-          newTransaction.payment_method = paymentMethod.name;
+          // Create a new object with the payment_method property
+          const transactionWithPaymentMethod = {
+            ...newTransaction,
+            payment_method: paymentMethod.name
+          };
+          setTransactions(prev => [transactionWithPaymentMethod, ...prev]);
+        } else {
+          setTransactions(prev => [newTransaction, ...prev]);
         }
+      } else {
+        setTransactions(prev => [newTransaction, ...prev]);
       }
-
-      setTransactions(prev => [newTransaction, ...prev]);
       
       toast({
         title: transaction.type === 'income' ? 'Income added' : 'Expense added',
