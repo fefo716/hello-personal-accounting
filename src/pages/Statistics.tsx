@@ -27,15 +27,19 @@ const Statistics = () => {
   useEffect(() => {
     const months = new Set<string>();
     
-    // Always add the current month first
+    // Get the current date and ensure it's properly formatted
     const today = new Date();
-    months.add(format(today, 'yyyy-MM'));
+    const currentMonth = format(today, 'yyyy-MM');
+    console.log('Current month:', currentMonth); // Debug log
+    
+    // Always add the current month first
+    months.add(currentMonth);
     
     // Add 11 previous months
-    let currentDate = subMonths(today, 1);
+    let previousDate = subMonths(today, 1);
     for (let i = 0; i < 11; i++) {
-      months.add(format(currentDate, 'yyyy-MM'));
-      currentDate = subMonths(currentDate, 1);
+      months.add(format(previousDate, 'yyyy-MM'));
+      previousDate = subMonths(previousDate, 1);
     }
     
     // Add months from transactions
@@ -46,9 +50,20 @@ const Statistics = () => {
     
     // Sort months in descending order (newest first)
     const sortedMonths = Array.from(months).sort((a, b) => b.localeCompare(a));
+    console.log('Available months:', sortedMonths); // Debug log
     
     setAvailableMonths(sortedMonths);
   }, [transactions]);
+  
+  // Set selected month to current month when component loads or months change
+  useEffect(() => {
+    if (availableMonths.length > 0) {
+      const currentMonth = format(new Date(), 'yyyy-MM');
+      if (availableMonths.includes(currentMonth)) {
+        setSelectedYearMonth(currentMonth);
+      }
+    }
+  }, [availableMonths]);
   
   return (
     <div className="min-h-screen bg-background">
