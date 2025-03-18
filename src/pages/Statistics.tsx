@@ -1,9 +1,10 @@
+
 import { useState, useEffect } from 'react';
-import Header from '@/components/Header';
+import Header from '@/components/workspace/WorkspaceHeader';
 import StatisticsCard from '@/components/StatisticsCard';
 import TransactionForm from '@/components/TransactionForm';
 import TransactionList from '@/components/TransactionList';
-import { format, addMonths, subMonths, startOfMonth, endOfMonth } from 'date-fns';
+import { format, startOfMonth, endOfMonth } from 'date-fns';
 import { 
   Select, 
   SelectContent, 
@@ -14,10 +15,12 @@ import {
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useTransactions } from '@/hooks/useTransactions';
+import { useWorkspace } from '@/hooks/useWorkspace';
 import { TransactionType } from '@/types';
 
 const Statistics = () => {
   const { transactions } = useTransactions();
+  const { currentWorkspace } = useWorkspace();
   const [selectedYearMonth, setSelectedYearMonth] = useState(format(new Date(), 'yyyy-MM'));
   const [availableMonths, setAvailableMonths] = useState<string[]>([]);
   const [filter, setFilter] = useState<TransactionType | 'all'>('all');
@@ -35,10 +38,11 @@ const Statistics = () => {
     months.add(currentMonth);
     
     // Add 11 previous months
-    let previousDate = subMonths(today, 1);
+    let previousDate = new Date(today);
+    previousDate.setMonth(today.getMonth() - 1);
     for (let i = 0; i < 11; i++) {
       months.add(format(previousDate, 'yyyy-MM'));
-      previousDate = subMonths(previousDate, 1);
+      previousDate.setMonth(previousDate.getMonth() - 1);
     }
     
     // Add months from transactions
@@ -70,7 +74,14 @@ const Statistics = () => {
       
       <main className="container pt-24 pb-20">
         <div className="space-y-6 animate-fade-in">
-          <h1 className="text-2xl font-bold animate-slide-up">Statistics</h1>
+          <h1 className="text-2xl font-bold animate-slide-up">
+            Estadísticas
+            {currentWorkspace && (
+              <span className="text-muted-foreground text-base ml-2">
+                en {currentWorkspace.name}
+              </span>
+            )}
+          </h1>
           
           <div className="flex flex-col sm:flex-row gap-4 sm:items-end justify-between animate-slide-up animate-delay-1">
             <div className="space-y-2 w-full sm:w-64">

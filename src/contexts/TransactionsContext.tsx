@@ -3,6 +3,7 @@ import { createContext, useState, useEffect, ReactNode } from 'react';
 import { Transaction, TransactionType, PaymentMethod } from '@/types';
 import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/hooks/useAuth';
+import { useWorkspace } from '@/hooks/useWorkspace';
 import { format } from 'date-fns';
 import {
   fetchTransactions,
@@ -34,9 +35,11 @@ export const TransactionsProvider = ({ children }: { children: ReactNode }) => {
   const [loadingPaymentMethods, setLoadingPaymentMethods] = useState(true);
   const { toast } = useToast();
   const { session } = useAuth();
+  const { currentWorkspace } = useWorkspace();
 
+  // Actualizar cuando cambia el espacio de trabajo actual
   useEffect(() => {
-    if (session?.user?.id) {
+    if (session?.user?.id && currentWorkspace) {
       fetchUserTransactions();
       fetchUserPaymentMethods();
     } else {
@@ -45,12 +48,14 @@ export const TransactionsProvider = ({ children }: { children: ReactNode }) => {
       setLoadingTransactions(false);
       setLoadingPaymentMethods(false);
     }
-  }, [session?.user?.id]);
+  }, [session?.user?.id, currentWorkspace]);
 
   const fetchUserTransactions = async () => {
     try {
+      if (!session?.user?.id || !currentWorkspace) return;
+      
       setLoadingTransactions(true);
-      const data = await fetchTransactions(session!.user!.id);
+      const data = await fetchTransactions(session.user.id, currentWorkspace.id);
       setTransactions(data);
     } catch (error: any) {
       console.error('Error fetching transactions:', error.message);
@@ -66,8 +71,10 @@ export const TransactionsProvider = ({ children }: { children: ReactNode }) => {
 
   const fetchUserPaymentMethods = async () => {
     try {
+      if (!session?.user?.id || !currentWorkspace) return;
+      
       setLoadingPaymentMethods(true);
-      const data = await fetchPaymentMethods(session!.user!.id);
+      const data = await fetchPaymentMethods(session.user.id, currentWorkspace.id);
       setPaymentMethods(data as PaymentMethod[]);
     } catch (error: any) {
       console.error('Error fetching payment methods:', error.message);
@@ -83,11 +90,14 @@ export const TransactionsProvider = ({ children }: { children: ReactNode }) => {
 
   const addTransaction = async (transaction: Omit<Transaction, 'id'>) => {
     try {
-      if (!session?.user?.id) {
-        throw new Error('User not authenticated');
+      if (!session?.user?.id || !currentWorkspace) {
+        throw new Error('User not authenticated or no workspace selected');
       }
 
-      const newTransaction = await apiAddTransaction(session.user.id, transaction);
+      const newTransaction = await apiAddTransaction(
+        session.user.id, 
+        { ...transaction, workspace_id: currentWorkspace.id }
+      );
 
       // Fix: Get the payment method name and add it to the transaction object
       if (newTransaction.payment_method_id) {
@@ -123,11 +133,11 @@ export const TransactionsProvider = ({ children }: { children: ReactNode }) => {
 
   const deleteTransaction = async (id: string) => {
     try {
-      if (!session?.user?.id) {
-        throw new Error('User not authenticated');
+      if (!session?.user?.id || !currentWorkspace) {
+        throw new Error('User not authenticated or no workspace selected');
       }
 
-      await apiDeleteTransaction(session.user.id, id);
+      await apiDeleteTransaction(session.user.id, id, currentWorkspace.id);
       setTransactions(prev => prev.filter(t => t.id !== id));
       
       toast({
@@ -146,11 +156,15 @@ export const TransactionsProvider = ({ children }: { children: ReactNode }) => {
 
   const addPaymentMethod = async (name: string) => {
     try {
-      if (!session?.user?.id) {
-        throw new Error('User not authenticated');
+      if (!session?.user?.id || !currentWorkspace) {
+        throw new Error('User not authenticated or no workspace selected');
       }
 
-      const data = await apiAddPaymentMethod(session.user.id, name);
+      const data = await apiAddPaymentMethod(
+        session.user.id, 
+        name, 
+        currentWorkspace.id
+      );
 
       if (data) {
         setPaymentMethods(prev => [...prev, data as PaymentMethod]);

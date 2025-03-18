@@ -26,6 +26,7 @@ import {
 } from '@/components/ui/tabs';
 import { ArrowUp, ArrowDown, Plus, CreditCard } from 'lucide-react';
 import { useTransactions } from '@/hooks/useTransactions';
+import { useWorkspace } from '@/hooks/useWorkspace';
 import { TransactionType } from '@/types';
 import { cn } from '@/lib/utils';
 
@@ -36,6 +37,7 @@ const categories = {
 
 const TransactionForm = () => {
   const { addTransaction, paymentMethods, loadingPaymentMethods, addPaymentMethod } = useTransactions();
+  const { currentWorkspace } = useWorkspace();
   const [open, setOpen] = useState(false);
   const [type, setType] = useState<TransactionType>('expense');
   const [amount, setAmount] = useState('');
@@ -48,7 +50,7 @@ const TransactionForm = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!amount || !description || !category) return;
+    if (!amount || !description || !category || !currentWorkspace) return;
     
     await addTransaction({
       type,
@@ -56,7 +58,8 @@ const TransactionForm = () => {
       description,
       category,
       payment_method_id: paymentMethodId || undefined,
-      date: new Date()
+      date: new Date(),
+      workspace_id: currentWorkspace.id
     });
     
     // Reset form
@@ -82,6 +85,7 @@ const TransactionForm = () => {
         <Button 
           className="fixed bottom-6 right-6 z-10 h-14 w-14 rounded-full shadow-lg" 
           size="icon"
+          disabled={!currentWorkspace}
         >
           <Plus className="h-6 w-6" />
         </Button>

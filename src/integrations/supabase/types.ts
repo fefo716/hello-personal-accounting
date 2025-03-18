@@ -15,20 +15,31 @@ export type Database = {
           id: string
           name: string
           user_id: string
+          workspace_id: string | null
         }
         Insert: {
           created_at?: string
           id?: string
           name: string
           user_id: string
+          workspace_id?: string | null
         }
         Update: {
           created_at?: string
           id?: string
           name?: string
           user_id?: string
+          workspace_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "payment_methods_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
@@ -65,6 +76,7 @@ export type Database = {
           id: string
           transaction_id: string | null
           user_id: string
+          workspace_id: string | null
         }
         Insert: {
           action: string
@@ -73,6 +85,7 @@ export type Database = {
           id?: string
           transaction_id?: string | null
           user_id: string
+          workspace_id?: string | null
         }
         Update: {
           action?: string
@@ -81,6 +94,7 @@ export type Database = {
           id?: string
           transaction_id?: string | null
           user_id?: string
+          workspace_id?: string | null
         }
         Relationships: [
           {
@@ -88,6 +102,13 @@ export type Database = {
             columns: ["transaction_id"]
             isOneToOne: false
             referencedRelation: "transactions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transaction_logs_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
             referencedColumns: ["id"]
           },
         ]
@@ -103,6 +124,7 @@ export type Database = {
           payment_method_id: string | null
           type: string
           user_id: string
+          workspace_id: string | null
         }
         Insert: {
           amount: number
@@ -114,6 +136,7 @@ export type Database = {
           payment_method_id?: string | null
           type: string
           user_id: string
+          workspace_id?: string | null
         }
         Update: {
           amount?: number
@@ -125,6 +148,7 @@ export type Database = {
           payment_method_id?: string | null
           type?: string
           user_id?: string
+          workspace_id?: string | null
         }
         Relationships: [
           {
@@ -134,7 +158,70 @@ export type Database = {
             referencedRelation: "payment_methods"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "transactions_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
         ]
+      }
+      workspace_members: {
+        Row: {
+          id: string
+          joined_at: string
+          role: string
+          user_id: string
+          workspace_id: string
+        }
+        Insert: {
+          id?: string
+          joined_at?: string
+          role?: string
+          user_id: string
+          workspace_id: string
+        }
+        Update: {
+          id?: string
+          joined_at?: string
+          role?: string
+          user_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workspace_members_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workspaces: {
+        Row: {
+          code: string
+          created_at: string
+          created_by: string
+          id: string
+          name: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          created_by: string
+          id?: string
+          name: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          created_by?: string
+          id?: string
+          name?: string
+        }
+        Relationships: []
       }
     }
     Views: {
@@ -151,6 +238,10 @@ export type Database = {
           last_name: string | null
           updated_at: string
         }
+      }
+      migrate_existing_data: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
       }
     }
     Enums: {

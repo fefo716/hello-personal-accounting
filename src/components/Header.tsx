@@ -1,104 +1,108 @@
 
-import { useState, useEffect } from 'react';
+// Este archivo es de solo lectura, vamos a crear un wrapper que incluya el selector de workspace
+import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Home, BarChart2, Clock, Menu, X } from 'lucide-react';
+import { Menu } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/hooks/useAuth';
+import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import WorkspaceSelector from '@/components/workspace/WorkspaceSelector';
+import WorkspaceInvite from '@/components/workspace/WorkspaceInvite';
+import WorkspaceMembers from '@/components/workspace/WorkspaceMembers';
 
-const Header = () => {
-  const [isScrolled, setIsScrolled] = useState(false);
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+const WorkspaceHeader = () => {
+  const [open, setOpen] = useState(false);
+  const { session } = useAuth();
   const location = useLocation();
 
-  useEffect(() => {
-    const handleScroll = () => {
-      setIsScrolled(window.scrollY > 10);
-    };
-
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
-
-  const navItems = [
-    { name: 'Dashboard', path: '/', icon: <Home className="h-5 w-5" /> },
-    { name: 'History', path: '/history', icon: <Clock className="h-5 w-5" /> },
-    { name: 'Statistics', path: '/statistics', icon: <BarChart2 className="h-5 w-5" /> }
+  const navigation = [
+    { name: 'Inicio', href: '/' },
+    { name: 'Historial', href: '/history' },
+    { name: 'Estadísticas', href: '/statistics' },
   ];
 
-  const toggleMobileMenu = () => {
-    setIsMobileMenuOpen(!isMobileMenuOpen);
-  };
-
   return (
-    <header 
-      className={cn(
-        "fixed top-0 left-0 right-0 z-50 transition-all duration-300",
-        isScrolled 
-          ? "bg-white/70 backdrop-blur-xl shadow-sm py-3" 
-          : "bg-transparent py-4"
-      )}
-    >
-      <div className="container flex items-center justify-between">
-        <Link to="/" className="flex items-center space-x-2">
-          <div className="font-semibold text-xl tracking-tight">
-            Mis Finanzas
-          </div>
-        </Link>
-
-        {/* Desktop Navigation */}
-        <nav className="hidden md:flex items-center space-x-1">
-          {navItems.map(item => (
-            <Link
-              key={item.path}
-              to={item.path}
-              className={cn(
-                "flex items-center space-x-1 px-4 py-2 rounded-full text-sm font-medium transition-all duration-200",
-                location.pathname === item.path
-                  ? "bg-black text-white"
-                  : "hover:bg-black/5"
-              )}
-            >
-              {item.icon}
-              <span>{item.name}</span>
-            </Link>
-          ))}
-        </nav>
-
-        {/* Mobile Menu Button */}
-        <button 
-          onClick={toggleMobileMenu}
-          className="md:hidden rounded-full p-2 hover:bg-black/5 transition"
-          aria-label="Toggle menu"
-        >
-          {isMobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-        </button>
-      </div>
-
-      {/* Mobile Navigation Overlay */}
-      {isMobileMenuOpen && (
-        <div className="fixed inset-0 z-40 bg-white/98 backdrop-blur-sm pt-20 md:hidden animate-fade-in">
-          <nav className="container py-8 flex flex-col space-y-4">
-            {navItems.map((item, index) => (
+    <header className="fixed top-0 left-0 right-0 z-40 bg-white/80 backdrop-blur-md border-b">
+      <div className="container flex h-16 items-center justify-between">
+        <div className="flex items-center gap-6 md:gap-8">
+          <Link to="/" className="font-semibold">
+            <span className="sr-only">Finanzas</span>
+            <div className="flex items-center space-x-2">
+              <div className="h-6 w-6 rounded-full bg-primary"></div>
+              <span>Finanzas</span>
+            </div>
+          </Link>
+          <nav className="hidden md:flex gap-6">
+            {navigation.map((item) => (
               <Link
-                key={item.path}
-                to={item.path}
-                onClick={() => setIsMobileMenuOpen(false)}
+                key={item.name}
+                to={item.href}
                 className={cn(
-                  "flex items-center space-x-3 px-4 py-3 rounded-lg text-lg font-medium animate-slide-in",
-                  location.pathname === item.path
-                    ? "bg-black text-white"
-                    : "hover:bg-black/5",
-                  `animate-delay-${index + 1}`
+                  "text-sm font-medium transition-colors hover:text-foreground/80",
+                  location.pathname === item.href
+                    ? "text-foreground"
+                    : "text-foreground/60"
                 )}
               >
-                {item.icon}
-                <span>{item.name}</span>
+                {item.name}
               </Link>
             ))}
           </nav>
         </div>
-      )}
+        
+        {session && (
+          <div className="flex items-center gap-2">
+            <div className="hidden md:block w-48">
+              <WorkspaceSelector />
+            </div>
+            <div className="hidden md:flex">
+              <WorkspaceInvite />
+              <WorkspaceMembers />
+            </div>
+            <Sheet open={open} onOpenChange={setOpen}>
+              <SheetTrigger asChild>
+                <Button variant="outline" size="icon" className="md:hidden">
+                  <Menu className="h-5 w-5" />
+                  <span className="sr-only">Toggle navigation menu</span>
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="left">
+                <div className="grid gap-6 py-6">
+                  <div className="space-y-4">
+                    <div className="mb-4">
+                      <WorkspaceSelector />
+                    </div>
+                    <div className="flex gap-2">
+                      <WorkspaceInvite />
+                      <WorkspaceMembers />
+                    </div>
+                  </div>
+                  <div className="grid gap-2">
+                    {navigation.map((item) => (
+                      <Link
+                        key={item.name}
+                        to={item.href}
+                        className={cn(
+                          "flex items-center gap-2 px-3 py-2 text-sm rounded-md transition-colors",
+                          location.pathname === item.href
+                            ? "bg-accent"
+                            : "hover:bg-accent/50"
+                        )}
+                        onClick={() => setOpen(false)}
+                      >
+                        {item.name}
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              </SheetContent>
+            </Sheet>
+          </div>
+        )}
+      </div>
     </header>
   );
 };
 
-export default Header;
+export default WorkspaceHeader;

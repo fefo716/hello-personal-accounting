@@ -4,6 +4,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { WorkspaceProvider } from "@/hooks/useWorkspace";
 import { TransactionsProvider } from "@/hooks/useTransactions";
 import { AuthProvider } from "@/hooks/useAuth";
 import { useAuth } from "@/hooks/useAuth";
@@ -35,38 +36,40 @@ const App = () => (
     <TooltipProvider>
       <BrowserRouter>
         <AuthProvider>
-          <TransactionsProvider>
-            <Toaster />
-            <Sonner />
-            <Routes>
-              <Route path="/auth" element={<Auth />} />
-              <Route 
-                path="/" 
-                element={
-                  <ProtectedRoute>
-                    <Index />
-                  </ProtectedRoute>
-                } 
-              />
-              <Route 
-                path="/history" 
-                element={
-                  <ProtectedRoute>
-                    <History />
-                  </ProtectedRoute>
-                } 
-              />
-              <Route 
-                path="/statistics" 
-                element={
-                  <ProtectedRoute>
-                    <Statistics />
-                  </ProtectedRoute>
-                } 
-              />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </TransactionsProvider>
+          <WorkspaceProvider>
+            <TransactionsProvider>
+              <Toaster />
+              <Sonner />
+              <Routes>
+                <Route path="/auth" element={<Auth />} />
+                <Route 
+                  path="/" 
+                  element={
+                    <ProtectedRoute>
+                      <Index />
+                    </ProtectedRoute>
+                  } 
+                />
+                <Route 
+                  path="/history" 
+                  element={
+                    <ProtectedRoute>
+                      <History />
+                    </ProtectedRoute>
+                  } 
+                />
+                <Route 
+                  path="/statistics" 
+                  element={
+                    <ProtectedRoute>
+                      <Statistics />
+                    </ProtectedRoute>
+                  } 
+                />
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </TransactionsProvider>
+          </WorkspaceProvider>
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>

@@ -10,6 +10,7 @@ export interface Transaction {
   payment_method_id?: string;
   payment_method?: string;
   date: Date;
+  workspace_id?: string;
 }
 
 export interface Category {
@@ -24,6 +25,7 @@ export interface PaymentMethod {
   name: string;
   user_id: string;
   created_at: string;
+  workspace_id?: string;
 }
 
 export interface UserProfile {
@@ -40,4 +42,20 @@ export interface Session {
     id: string;
     email?: string;
   } | null;
+}
+
+export interface Workspace {
+  id: string;
+  name: string;
+  code: string;
+  created_at: string;
+  created_by: string;
+}
+
+export interface WorkspaceMember {
+  id: string;
+  workspace_id: string;
+  user_id: string;
+  role: 'owner' | 'member';
+  joined_at: string;
 }

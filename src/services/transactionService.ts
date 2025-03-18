@@ -2,14 +2,14 @@
 import { supabase } from '@/integrations/supabase/client';
 import { Transaction, TransactionType, PaymentMethod } from '@/types';
 
-export const fetchTransactions = async (userId: string) => {
+export const fetchTransactions = async (userId: string, workspaceId: string) => {
   const { data, error } = await supabase
     .from('transactions')
     .select(`
       *,
       payment_methods(name)
     `)
-    .eq('user_id', userId)
+    .eq('workspace_id', workspaceId)
     .order('date', { ascending: false });
 
   if (error) {
@@ -25,18 +25,19 @@ export const fetchTransactions = async (userId: string) => {
       category: item.category,
       payment_method_id: item.payment_method_id,
       payment_method: item.payment_methods?.name,
-      date: new Date(item.date)
+      date: new Date(item.date),
+      workspace_id: item.workspace_id
     }));
   }
 
   return [];
 };
 
-export const fetchPaymentMethods = async (userId: string) => {
+export const fetchPaymentMethods = async (userId: string, workspaceId: string) => {
   const { data, error } = await supabase
     .from('payment_methods')
     .select('*')
-    .eq('user_id', userId)
+    .eq('workspace_id', workspaceId)
     .order('name');
 
   if (error) {
@@ -48,7 +49,7 @@ export const fetchPaymentMethods = async (userId: string) => {
 
 export const addTransaction = async (
   userId: string,
-  transaction: Omit<Transaction, 'id'>
+  transaction: Omit<Transaction, 'id'> & { workspace_id: string }
 ) => {
   const formattedDate = transaction.date.toISOString();
 
@@ -61,7 +62,8 @@ export const addTransaction = async (
       description: transaction.description,
       category: transaction.category,
       payment_method_id: transaction.payment_method_id,
-      date: formattedDate
+      date: formattedDate,
+      workspace_id: transaction.workspace_id
     })
     .select()
     .single();
@@ -71,7 +73,7 @@ export const addTransaction = async (
   }
 
   if (data) {
-    await logTransactionAction(userId, data.id, 'create', { transaction: data });
+    await logTransactionAction(userId, data.id, 'create', { transaction: data }, data.workspace_id);
     
     return {
       id: data.id,
@@ -80,14 +82,15 @@ export const addTransaction = async (
       description: data.description,
       category: data.category,
       payment_method_id: data.payment_method_id,
-      date: new Date(data.date)
+      date: new Date(data.date),
+      workspace_id: data.workspace_id
     };
   }
 
   throw new Error('Failed to add transaction');
 };
 
-export const deleteTransaction = async (userId: string, id: string) => {
+export const deleteTransaction = async (userId: string, id: string, workspaceId: string) => {
   const { data: transactionData } = await supabase
     .from('transactions')
     .select('*')
@@ -98,25 +101,26 @@ export const deleteTransaction = async (userId: string, id: string) => {
     .from('transactions')
     .delete()
     .eq('id', id)
-    .eq('user_id', userId);
+    .eq('workspace_id', workspaceId);
 
   if (error) {
     throw error;
   }
 
   if (transactionData) {
-    await logTransactionAction(userId, id, 'delete', { transaction: transactionData });
+    await logTransactionAction(userId, id, 'delete', { transaction: transactionData }, workspaceId);
   }
 
   return id;
 };
 
-export const addPaymentMethod = async (userId: string, name: string) => {
+export const addPaymentMethod = async (userId: string, name: string, workspaceId: string) => {
   const { data, error } = await supabase
     .from('payment_methods')
     .insert({
       user_id: userId,
-      name
+      name,
+      workspace_id: workspaceId
     })
     .select()
     .single();
@@ -132,7 +136,8 @@ const logTransactionAction = async (
   userId: string,
   transactionId: string,
   action: string,
-  details: any
+  details: any,
+  workspaceId: string
 ) => {
   return await supabase
     .from('transaction_logs')
@@ -140,6 +145,7 @@ const logTransactionAction = async (
       user_id: userId,
       transaction_id: transactionId,
       action,
-      details
+      details,
+      workspace_id: workspaceId
     });
 };
