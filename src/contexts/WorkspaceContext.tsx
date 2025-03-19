@@ -1,4 +1,3 @@
-
 import { createContext, useState, useEffect, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
@@ -12,6 +11,7 @@ interface WorkspaceContextProps {
   loadingWorkspaces: boolean;
   loadingMembers: boolean;
   createWorkspace: (name: string) => Promise<Workspace | null>;
+  createPersonalWorkspace: () => Promise<Workspace | null>;
   joinWorkspace: (code: string) => Promise<boolean>;
   switchWorkspace: (workspaceId: string) => void;
   refreshWorkspaces: () => Promise<void>;
@@ -29,7 +29,6 @@ export const WorkspaceProvider = ({ children }: { children: ReactNode }) => {
   const { toast } = useToast();
   const { session } = useAuth();
 
-  // Cargar los espacios de trabajo del usuario al iniciar sesión
   useEffect(() => {
     if (session?.user?.id) {
       refreshWorkspaces();
@@ -40,17 +39,14 @@ export const WorkspaceProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [session?.user?.id]);
 
-  // Cargar miembros cuando cambia el espacio de trabajo actual
   useEffect(() => {
     if (currentWorkspace) {
       refreshMembers();
       
-      // Guardar el espacio de trabajo actual en localStorage
       localStorage.setItem('currentWorkspaceId', currentWorkspace.id);
     }
   }, [currentWorkspace?.id]);
 
-  // Intentar restaurar el espacio de trabajo actual desde localStorage
   useEffect(() => {
     if (workspaces.length > 0) {
       const savedWorkspaceId = localStorage.getItem('currentWorkspaceId');
@@ -61,7 +57,6 @@ export const WorkspaceProvider = ({ children }: { children: ReactNode }) => {
           return;
         }
       }
-      // Si no hay espacio guardado o no se encuentra, usar el primero
       setCurrentWorkspace(workspaces[0]);
     }
   }, [workspaces]);
@@ -72,7 +67,6 @@ export const WorkspaceProvider = ({ children }: { children: ReactNode }) => {
     try {
       setLoadingWorkspaces(true);
       
-      // Buscar espacios de trabajo donde el usuario es miembro
       const { data: memberships, error: membershipError } = await supabase
         .from('workspace_members')
         .select('workspace_id')
@@ -83,7 +77,6 @@ export const WorkspaceProvider = ({ children }: { children: ReactNode }) => {
       if (memberships && memberships.length > 0) {
         const workspaceIds = memberships.map(m => m.workspace_id);
         
-        // Obtener detalles de los espacios de trabajo
         const { data: workspacesData, error: workspacesError } = await supabase
           .from('workspaces')
           .select('*')
@@ -158,10 +151,8 @@ export const WorkspaceProvider = ({ children }: { children: ReactNode }) => {
     }
     
     try {
-      // Generar un código único para el espacio de trabajo
       const code = Math.random().toString(36).substring(2, 8).toUpperCase();
       
-      // Crear el espacio de trabajo
       const { data: workspace, error: workspaceError } = await supabase
         .from('workspaces')
         .insert({
@@ -176,7 +167,6 @@ export const WorkspaceProvider = ({ children }: { children: ReactNode }) => {
       
       if (!workspace) throw new Error('No se pudo crear el espacio de trabajo');
       
-      // Agregar al creador como miembro con rol de propietario
       const { error: memberError } = await supabase
         .from('workspace_members')
         .insert({
@@ -187,7 +177,6 @@ export const WorkspaceProvider = ({ children }: { children: ReactNode }) => {
         
       if (memberError) {
         console.error('Error adding member to workspace:', memberError);
-        // If this fails, we should still proceed rather than failing the whole operation
         toast({
           title: 'Advertencia',
           description: 'El espacio se creó pero hubo un problema al añadirte como miembro. Intenta actualizar la página.',
@@ -195,10 +184,8 @@ export const WorkspaceProvider = ({ children }: { children: ReactNode }) => {
         });
       }
       
-      // Actualizar la lista de espacios de trabajo
       await refreshWorkspaces();
       
-      // Establecer el nuevo espacio como el actual
       setCurrentWorkspace(workspace as Workspace);
       
       toast({
@@ -211,7 +198,6 @@ export const WorkspaceProvider = ({ children }: { children: ReactNode }) => {
     } catch (error: any) {
       console.error('Error creating workspace:', error.message);
       
-      // More user-friendly error messages
       let errorMessage = 'No se pudo crear el espacio de trabajo';
       
       if (error.message.includes('infinite recursion')) {
@@ -229,6 +215,87 @@ export const WorkspaceProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  const createPersonalWorkspace = async (): Promise<Workspace | null> => {
+    if (!session?.user?.id) {
+      toast({
+        title: 'Error',
+        description: 'Debes iniciar sesión para crear un espacio de trabajo',
+        variant: 'destructive',
+      });
+      return null;
+    }
+    
+    try {
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('first_name, last_name')
+        .eq('id', session.user.id)
+        .single();
+        
+      if (profileError) {
+        console.error('Error fetching profile:', profileError);
+      }
+      
+      const firstName = profileData?.first_name || '';
+      const lastName = profileData?.last_name || '';
+      let workspaceName = 'Espacio Personal';
+      
+      if (firstName || lastName) {
+        workspaceName = `${firstName} ${lastName}`.trim();
+      }
+      
+      const code = Math.random().toString(36).substring(2, 8).toUpperCase();
+      
+      const { data: workspace, error: workspaceError } = await supabase
+        .from('workspaces')
+        .insert({
+          name: workspaceName,
+          code,
+          created_by: session.user.id
+        })
+        .select()
+        .single();
+        
+      if (workspaceError) throw workspaceError;
+      
+      if (!workspace) throw new Error('No se pudo crear el espacio de trabajo');
+      
+      const { error: memberError } = await supabase
+        .from('workspace_members')
+        .insert({
+          workspace_id: workspace.id,
+          user_id: session.user.id,
+          role: 'owner'
+        });
+        
+      if (memberError) {
+        console.error('Error adding member to workspace:', memberError);
+      }
+      
+      await refreshWorkspaces();
+      
+      setCurrentWorkspace(workspace as Workspace);
+      
+      toast({
+        title: 'Espacio personal creado',
+        description: `Se ha creado "${workspaceName}" automáticamente`,
+        duration: 3000,
+      });
+      
+      return workspace as Workspace;
+      
+    } catch (error: any) {
+      console.error('Error creating personal workspace:', error.message);
+      
+      toast({
+        title: 'Error',
+        description: 'No se pudo crear el espacio personal. Por favor, inténtalo de nuevo.',
+        variant: 'destructive',
+      });
+      return null;
+    }
+  };
+
   const joinWorkspace = async (code: string): Promise<boolean> => {
     if (!session?.user?.id) {
       toast({
@@ -240,7 +307,6 @@ export const WorkspaceProvider = ({ children }: { children: ReactNode }) => {
     }
     
     try {
-      // Buscar el espacio de trabajo por código
       const { data: workspace, error: workspaceError } = await supabase
         .from('workspaces')
         .select('*')
@@ -269,7 +335,6 @@ export const WorkspaceProvider = ({ children }: { children: ReactNode }) => {
         return false;
       }
       
-      // Verificar si el usuario ya es miembro
       const { data: existingMember, error: memberCheckError } = await supabase
         .from('workspace_members')
         .select('*')
@@ -291,7 +356,6 @@ export const WorkspaceProvider = ({ children }: { children: ReactNode }) => {
         throw memberCheckError;
       }
       
-      // Retry logic with RLS debugging info
       let joinAttempts = 0;
       const maxAttempts = 2;
       let joinError = null;
@@ -306,7 +370,6 @@ export const WorkspaceProvider = ({ children }: { children: ReactNode }) => {
           });
           
         if (!error) {
-          // Success - no error
           break;
         }
         
@@ -314,7 +377,6 @@ export const WorkspaceProvider = ({ children }: { children: ReactNode }) => {
         console.log(`Join attempt ${joinAttempts + 1} failed:`, error);
         joinAttempts++;
         
-        // Small delay before retry
         if (joinAttempts < maxAttempts) {
           await new Promise(resolve => setTimeout(resolve, 500));
         }
@@ -323,13 +385,11 @@ export const WorkspaceProvider = ({ children }: { children: ReactNode }) => {
       if (joinError) {
         console.error('All join attempts failed:', joinError);
         
-        // Custom error message based on the error
         let errorMessage = 'No se pudo unir al espacio de trabajo';
         
         if (joinError.message.includes('violates row-level security')) {
           errorMessage = 'No tienes permiso para unirte a este espacio de trabajo';
         } else if (joinError.message.includes('duplicate key')) {
-          // This actually means you're already a member
           toast({
             title: 'Ya eres miembro',
             description: 'Ya perteneces a este espacio de trabajo',
@@ -347,10 +407,8 @@ export const WorkspaceProvider = ({ children }: { children: ReactNode }) => {
         return false;
       }
       
-      // Actualizar la lista de espacios de trabajo
       await refreshWorkspaces();
       
-      // Establecer el nuevo espacio como el actual
       setCurrentWorkspace(workspace as Workspace);
       
       toast({
@@ -363,7 +421,6 @@ export const WorkspaceProvider = ({ children }: { children: ReactNode }) => {
     } catch (error: any) {
       console.error('Error joining workspace:', error.message);
       
-      // More user-friendly error message
       let errorMessage = 'No se pudo unir al espacio de trabajo';
       
       if (error.message.includes('duplicate key')) {
@@ -397,6 +454,7 @@ export const WorkspaceProvider = ({ children }: { children: ReactNode }) => {
         loadingWorkspaces,
         loadingMembers,
         createWorkspace,
+        createPersonalWorkspace,
         joinWorkspace,
         switchWorkspace,
         refreshWorkspaces,

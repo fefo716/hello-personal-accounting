@@ -53,18 +53,22 @@ export const addTransaction = async (
 ) => {
   const formattedDate = transaction.date.toISOString();
 
+  // Si por alguna razón no hay workspace_id, creamos la transacción sin él
+  // (esto no debería ocurrir con nuestra implementación, pero es una capa adicional de seguridad)
+  const transactionData = {
+    user_id: userId,
+    type: transaction.type,
+    amount: transaction.amount,
+    description: transaction.description,
+    category: transaction.category,
+    payment_method_id: transaction.payment_method_id,
+    date: formattedDate,
+    workspace_id: transaction.workspace_id
+  };
+
   const { data, error } = await supabase
     .from('transactions')
-    .insert({
-      user_id: userId,
-      type: transaction.type,
-      amount: transaction.amount,
-      description: transaction.description,
-      category: transaction.category,
-      payment_method_id: transaction.payment_method_id,
-      date: formattedDate,
-      workspace_id: transaction.workspace_id
-    })
+    .insert(transactionData)
     .select()
     .single();
 
