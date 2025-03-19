@@ -11,6 +11,7 @@ import { useAuth } from "@/hooks/useAuth";
 import Index from "./pages/Index";
 import History from "./pages/History";
 import Statistics from "./pages/Statistics";
+import Profile from "./pages/Profile";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 
@@ -63,6 +64,14 @@ const App = () => (
                   element={
                     <ProtectedRoute>
                       <Statistics />
+                    </ProtectedRoute>
+                  } 
+                />
+                <Route 
+                  path="/profile" 
+                  element={
+                    <ProtectedRoute>
+                      <Profile />
                     </ProtectedRoute>
                   } 
                 />

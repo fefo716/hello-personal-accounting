@@ -10,6 +10,7 @@ import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import WorkspaceSelector from '@/components/workspace/WorkspaceSelector';
 import WorkspaceInvite from '@/components/workspace/WorkspaceInvite';
 import WorkspaceMembers from '@/components/workspace/WorkspaceMembers';
+import UserMenu from '@/components/UserMenu';
 
 const WorkspaceHeader = () => {
   const [open, setOpen] = useState(false);
@@ -60,6 +61,9 @@ const WorkspaceHeader = () => {
               <WorkspaceInvite />
               <WorkspaceMembers />
             </div>
+            <div className="flex items-center ml-2">
+              <UserMenu />
+            </div>
             <Sheet open={open} onOpenChange={setOpen}>
               <SheetTrigger asChild>
                 <Button variant="outline" size="icon" className="md:hidden">
@@ -94,6 +98,19 @@ const WorkspaceHeader = () => {
                         {item.name}
                       </Link>
                     ))}
+                  </div>
+                  <div className="mt-4">
+                    <Button
+                      variant="outline"
+                      className="w-full"
+                      onClick={() => {
+                        const auth = useAuth();
+                        auth.signOut();
+                        setOpen(false);
+                      }}
+                    >
+                      Cerrar sesión
+                    </Button>
                   </div>
                 </div>
               </SheetContent>
