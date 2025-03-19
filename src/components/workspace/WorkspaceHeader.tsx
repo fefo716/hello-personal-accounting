@@ -7,11 +7,15 @@ import WorkspaceSelector from '@/components/workspace/WorkspaceSelector';
 const WorkspaceHeader = () => {
   const { currentWorkspace } = useWorkspace();
   
-  // We're not properly using the Header component. Looking at Header.tsx, 
-  // it doesn't accept children as props but is a complete component itself.
-  // Let's use it correctly:
   return (
-    <Header />
+    <div className="flex flex-col">
+      <Header />
+      {currentWorkspace && (
+        <div className="px-4 py-2">
+          <WorkspaceSelector />
+        </div>
+      )}
+    </div>
   );
 };
 
