@@ -185,7 +185,15 @@ export const WorkspaceProvider = ({ children }: { children: ReactNode }) => {
           role: 'owner'
         });
         
-      if (memberError) throw memberError;
+      if (memberError) {
+        console.error('Error adding member to workspace:', memberError);
+        // If this fails, we should still proceed rather than failing the whole operation
+        toast({
+          title: 'Advertencia',
+          description: 'El espacio se creó pero hubo un problema al añadirte como miembro. Intenta actualizar la página.',
+          variant: 'default',
+        });
+      }
       
       // Actualizar la lista de espacios de trabajo
       await refreshWorkspaces();
@@ -202,9 +210,19 @@ export const WorkspaceProvider = ({ children }: { children: ReactNode }) => {
       
     } catch (error: any) {
       console.error('Error creating workspace:', error.message);
+      
+      // More user-friendly error messages
+      let errorMessage = 'No se pudo crear el espacio de trabajo';
+      
+      if (error.message.includes('infinite recursion')) {
+        errorMessage = 'Hubo un problema con los permisos. Por favor, inténtalo de nuevo.';
+      } else if (error.code === '23505') {
+        errorMessage = 'Ya existe un espacio de trabajo con ese nombre o código.';
+      }
+      
       toast({
         title: 'Error',
-        description: 'No se pudo crear el espacio de trabajo',
+        description: errorMessage,
         variant: 'destructive',
       });
       return null;
@@ -273,16 +291,61 @@ export const WorkspaceProvider = ({ children }: { children: ReactNode }) => {
         throw memberCheckError;
       }
       
-      // Agregar al usuario como miembro
-      const { error: joinError } = await supabase
-        .from('workspace_members')
-        .insert({
-          workspace_id: workspace.id,
-          user_id: session.user.id,
-          role: 'member'
-        });
+      // Retry logic with RLS debugging info
+      let joinAttempts = 0;
+      const maxAttempts = 2;
+      let joinError = null;
+      
+      while (joinAttempts < maxAttempts) {
+        const { error } = await supabase
+          .from('workspace_members')
+          .insert({
+            workspace_id: workspace.id,
+            user_id: session.user.id,
+            role: 'member'
+          });
+          
+        if (!error) {
+          // Success - no error
+          break;
+        }
         
-      if (joinError) throw joinError;
+        joinError = error;
+        console.log(`Join attempt ${joinAttempts + 1} failed:`, error);
+        joinAttempts++;
+        
+        // Small delay before retry
+        if (joinAttempts < maxAttempts) {
+          await new Promise(resolve => setTimeout(resolve, 500));
+        }
+      }
+      
+      if (joinError) {
+        console.error('All join attempts failed:', joinError);
+        
+        // Custom error message based on the error
+        let errorMessage = 'No se pudo unir al espacio de trabajo';
+        
+        if (joinError.message.includes('violates row-level security')) {
+          errorMessage = 'No tienes permiso para unirte a este espacio de trabajo';
+        } else if (joinError.message.includes('duplicate key')) {
+          // This actually means you're already a member
+          toast({
+            title: 'Ya eres miembro',
+            description: 'Ya perteneces a este espacio de trabajo',
+          });
+          setCurrentWorkspace(workspace as Workspace);
+          await refreshWorkspaces();
+          return true;
+        }
+        
+        toast({
+          title: 'Error',
+          description: errorMessage,
+          variant: 'destructive',
+        });
+        return false;
+      }
       
       // Actualizar la lista de espacios de trabajo
       await refreshWorkspaces();
@@ -299,9 +362,19 @@ export const WorkspaceProvider = ({ children }: { children: ReactNode }) => {
       
     } catch (error: any) {
       console.error('Error joining workspace:', error.message);
+      
+      // More user-friendly error message
+      let errorMessage = 'No se pudo unir al espacio de trabajo';
+      
+      if (error.message.includes('duplicate key')) {
+        errorMessage = 'Ya eres miembro de este espacio de trabajo';
+      } else if (error.message.includes('violates row-level security')) {
+        errorMessage = 'No tienes permiso para unirte a este espacio de trabajo';
+      }
+      
       toast({
         title: 'Error',
-        description: 'No se pudo unir al espacio de trabajo',
+        description: errorMessage,
         variant: 'destructive',
       });
       return false;
