@@ -7,14 +7,11 @@ import WorkspaceSelector from '@/components/workspace/WorkspaceSelector';
 const WorkspaceHeader = () => {
   const { currentWorkspace } = useWorkspace();
   
+  // We're not properly using the Header component. Looking at Header.tsx, 
+  // it doesn't accept children as props but is a complete component itself.
+  // Let's use it correctly:
   return (
-    <Header>
-      {currentWorkspace && (
-        <div className="ml-2">
-          <WorkspaceSelector />
-        </div>
-      )}
-    </Header>
+    <Header />
   );
 };
 
